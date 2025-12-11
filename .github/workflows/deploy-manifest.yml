@@ -161,10 +161,9 @@ jobs:
       
       - name: Deploy to Kubernetes
         run: |
-          # Apply the updated manifest to the cluster
-          # The cluster might not be accessible during CI, so we'll just validate the manifest format
-          echo "Validating manifest file..."
-          kubectl apply -f k8s-manifest.yaml --dry-run=server --validate=true
+          # Validate the manifest syntax (client-side validation only)
+          echo "Validating manifest file syntax..."
+          kubectl apply -f k8s-manifest.yaml --dry-run=client --validate=true
           
           # Only proceed with actual deployment if cluster is accessible
           if kubectl cluster-info &> /dev/null; then
