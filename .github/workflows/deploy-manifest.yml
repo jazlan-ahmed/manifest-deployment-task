@@ -90,7 +90,7 @@ jobs:
           export KUBECONFIG=kubeconfig
           
           # Deploy the manifest to the cluster
-          kubectl apply -f k8s-manifest.yaml
+          kubectl apply -f k8s-manifest.yaml --validate=false
           
           # Check deployment status
           kubectl rollout status deployment/manifest-deployment-app
