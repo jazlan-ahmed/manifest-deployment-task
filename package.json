@@ -8,10 +8,15 @@
     "build": "echo 'Building application...' && mkdir -p dist && cp index.js dist/",
     "test": "echo \"No tests specified, skipping...\" || exit 0"
   },
-  "keywords": ["github-actions", "deployment", "manifest"],
+  "keywords": [
+    "github-actions",
+    "deployment",
+    "manifest"
+  ],
   "author": "Your Name",
   "license": "MIT",
   "dependencies": {
-    "express": "^4.18.2"
+    "express": "^4.18.2",
+    "js-yaml": "^4.1.1"
   }
 }

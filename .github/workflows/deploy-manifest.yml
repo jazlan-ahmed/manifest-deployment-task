@@ -1,3 +1,15 @@
+# Build and Deploy Manifest to Kubernetes
+#
+# This workflow builds a Docker image from the application code and deploys it to a Kubernetes cluster.
+#
+# Required Secrets:
+# - KUBECONFIG_DATA: Base64-encoded kubeconfig file for your Kubernetes cluster
+#
+# Optional Secrets (for cloud-specific deployments):
+# - GKE_PROJECT, GKE_SA_KEY, GKE_CLUSTER_NAME, GKE_ZONE (for GKE)
+# - AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION (for EKS)
+# - AZURE_CREDENTIALS, AZURE_RESOURCE_GROUP, AZURE_CLUSTER_NAME (for AKS)
+
 name: Build and Deploy Manifest
 
 on:
@@ -5,6 +17,7 @@ on:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
+  workflow_dispatch: # Allow manual triggering
 
 env:
   REGISTRY: ghcr.io
@@ -125,19 +138,30 @@ jobs:
         with:
           version: 'latest'
       
-      - name: Set up KUBECONFIG
+      - name: Configure kubectl
         run: |
+          # Create kubeconfig directory
           mkdir -p ~/.kube
+          
+          # Decode and write kubeconfig from secret
           echo "${{ secrets.KUBECONFIG_DATA }}" | base64 -d > ~/.kube/config
           chmod 600 ~/.kube/config
+          
+          # Verify kubectl connection
+          kubectl cluster-info
+          kubectl get nodes
       
       - name: Deploy to Kubernetes
         run: |
           # Apply the updated manifest to the cluster
-          kubectl apply -f k8s-manifest.yaml --validate=false
+          kubectl apply -f k8s-manifest.yaml --validate=true
           
           # Wait for deployment to be ready
           kubectl rollout status deployment/manifest-deployment-app --timeout=10m
+          
+          # Display deployment status
+          kubectl get deployments
+          kubectl get pods
           
           # Display service information
           kubectl get services
@@ -145,10 +169,10 @@ jobs:
           
           # Get the external IP (this may take time to provision)
           echo "Waiting for LoadBalancer IP..."
-          timeout 300 bash -c 'while [[ -z $(kubectl get service manifest-deployment-app-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}') ]]; do sleep 10; echo "Waiting for LoadBalancer IP assignment..."; kubectl get services; done'
+          timeout 300 bash -c 'while [[ -z $(kubectl get service manifest-deployment-app-service -o jsonpath='\''{.status.loadBalancer.ingress[0].ip}'\'') ]]; do sleep 10; echo "Waiting for LoadBalancer IP assignment..."; kubectl get services; done'
           
           # Display the final external IP
-          EXTERNAL_IP=$(kubectl get service manifest-deployment-app-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+          EXTERNAL_IP=$(kubectl get service manifest-deployment-app-service -o jsonpath='\''{.status.loadBalancer.ingress[0].ip}'\'')
           if [ ! -z "$EXTERNAL_IP" ]; then
             echo "Application is available at: http://$EXTERNAL_IP"
           else

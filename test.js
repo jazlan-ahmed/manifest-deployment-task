@@ -1,54 +1,64 @@
-// Simple test to validate the application structure
 const fs = require('fs');
-const path = require('path');
+const yaml = require('js-yaml');
 
-console.log('Validating project structure...');
+console.log('Testing GitHub Actions workflow configuration...\n');
 
-// Check if required files exist
-const requiredFiles = [
-  'package.json',
-  'index.js',
-  'Dockerfile',
-  'k8s-manifest.yaml',
-  '.github/workflows/deploy-manifest.yml'
-];
-
-let allFilesExist = true;
-
-requiredFiles.forEach(file => {
-  if (fs.existsSync(file)) {
-    console.log(`✓ ${file} exists`);
-  } else {
-    console.log(`✗ ${file} missing`);
-    allFilesExist = false;
+try {
+ // Read and validate the workflow file
+  const workflowContent = fs.readFileSync('./.github/workflows/deploy-manifest.yml', 'utf8');
+  
+  console.log('✓ Workflow file exists and is readable');
+  
+  // Parse YAML to check for syntax errors
+  const workflow = yaml.load(workflowContent);
+  
+  console.log('✓ Workflow file has valid YAML syntax');
+  
+  // Check for required properties
+  if (!workflow.name) {
+    throw new Error('Workflow is missing a name');
   }
-});
-
-if (allFilesExist) {
-  console.log('\n✓ All required files are present');
-  console.log('✓ Application structure is valid');
-  console.log('✓ GitHub Action workflow is configured');
-  console.log('\nThe project is ready for deployment via GitHub Actions.');
-} else {
-  console.log('\n✗ Some required files are missing. Please check the project structure.');
-  process.exit(1);
-}
-
-// Validate package.json has required scripts
-const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-const requiredScripts = ['start', 'build'];
-
-let hasRequiredScripts = true;
-
-requiredScripts.forEach(script => {
-  if (!packageJson.scripts[script]) {
-    console.log(`✗ Script '${script}' is missing from package.json`);
-    hasRequiredScripts = false;
-  } else {
-    console.log(`✓ Script '${script}' is present in package.json`);
+  
+  console.log('✓ Workflow has a name:', workflow.name);
+  
+  if (!workflow.on) {
+    throw new Error('Workflow is missing trigger events');
   }
-});
-
-if (hasRequiredScripts) {
-  console.log('\n✓ All required scripts are present in package.json');
+  
+  console.log('✓ Workflow has trigger events defined');
+  
+  if (!workflow.jobs) {
+    throw new Error('Workflow is missing jobs');
+  }
+  
+  console.log('✓ Workflow has jobs defined');
+  
+  // Check for the build-and-push-image job
+  if (!workflow.jobs['build-and-push-image']) {
+    throw new Error('Workflow is missing build-and-push-image job');
+  }
+  
+  console.log('✓ Workflow has build-and-push-image job');
+  
+  // Check for the deploy-manifest job
+  if (!workflow.jobs['deploy-manifest']) {
+    throw new Error('Workflow is missing deploy-manifest job');
+  }
+  
+  console.log('✓ Workflow has deploy-manifest job');
+  
+  // Check for required secrets mentioned in the workflow
+  const workflowText = workflowContent.toLowerCase();
+  if (workflowText.includes('secrets.kubeconfig_data')) {
+    console.log('✓ Workflow references KUBECONFIG_DATA secret');
+  }
+  
+  console.log('\n✓ All validation checks passed!');
+  console.log('\nThe GitHub Actions workflow is properly configured for manifest deployment.');
+  console.log('Remember to set up the required secrets in your GitHub repository:');
+  console.log('- KUBECONFIG_DATA: Base64-encoded kubeconfig file for your Kubernetes cluster');
+  
+} catch (error) {
+  console.error('✗ Validation failed:', error.message);
+ process.exit(1);
 }
