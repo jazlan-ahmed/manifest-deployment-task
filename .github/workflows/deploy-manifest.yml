@@ -147,12 +147,26 @@ jobs:
           echo "${{ secrets.KUBECONFIG_DATA }}" | base64 -d > ~/.kube/config
           chmod 600 ~/.kube/config
           
-          # Verify kubectl connection
-          kubectl cluster-info
-          kubectl get nodes
+          # Verify kubectl configuration (connection will work only if cluster is accessible)
+          kubectl version --client
+          
+          # Only run cluster commands if the cluster is accessible
+          if kubectl cluster-info &> /dev/null; then
+            echo "Successfully connected to cluster"
+            kubectl get nodes
+          else
+            echo "Warning: Could not connect to Kubernetes cluster. This is expected if the cluster is not accessible from this environment."
+            echo "The deployment will proceed assuming the kubeconfig is properly configured."
+          fi
       
       - name: Deploy to Kubernetes
         run: |
+          # Verify kubectl can connect to the cluster before deploying
+          if ! kubectl cluster-info &> /dev/null; then
+            echo "Error: Cannot connect to Kubernetes cluster. Please verify your KUBECONFIG settings."
+            exit 1
+          fi
+          
           # Apply the updated manifest to the cluster
           kubectl apply -f k8s-manifest.yaml --validate=true
           

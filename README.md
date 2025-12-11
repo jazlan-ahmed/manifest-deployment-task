@@ -39,6 +39,21 @@ cat ~/.kube/config | base64 -w 0
 
 Then add this as a repository secret named `KUBECONFIG_DATA`.
 
+### Common Issues
+
+If you encounter the error "The connection to the server localhost:8080 was refused", this typically means:
+1. No Kubernetes cluster is accessible from the current environment
+2. The KUBECONFIG is not properly configured
+3. The cluster credentials have expired
+
+Make sure your KUBECONFIG contains the correct cluster information and that the cluster is accessible from the environment where you're running kubectl commands.
+
+```bash
+cat ~/.kube/config | base64 -w 0
+```
+
+Then add this as a repository secret named `KUBECONFIG_DATA`.
+
 ## Local Development
 
 To run the application locally:
