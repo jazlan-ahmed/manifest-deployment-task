@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: manifest-deployment-app
+  labels:
+    app: manifest-deployment-app
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: manifest-deployment-app
+  template:
+    metadata:
+      labels:
+        app: manifest-deployment-app
+    spec:
+      containers:
+      - name: app
+        image: manifest-deployment-app:latest
+        ports:
+        - containerPort: 3000
+        env:
+        - name: PORT
+          value: "3000"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: manifest-deployment-app-service
+spec:
+  selector:
+    app: manifest-deployment-app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000
+  type: LoadBalancer
