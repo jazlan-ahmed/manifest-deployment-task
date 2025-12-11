@@ -77,22 +77,25 @@ jobs:
           # Replace the image in the manifest with the newly built image
           sed -i "s|image: manifest-deployment-app:latest|image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}|g" k8s-manifest.yaml
           
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+
       - name: Deploy manifest to cluster
         run: |
-          # Here you would typically authenticate to your Kubernetes cluster
-          # For example, with AKS, EKS, GKE, or a custom cluster
+          # Authenticate to your Kubernetes cluster
+          # This assumes you have set up the KUBE_CONFIG_DATA secret in your repository
+          echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 -d > kubeconfig
+          export KUBECONFIG=kubeconfig
           
-          # Example authentication setup for different providers:
-          # Azure: az aks get-credentials --resource-group myResourceGroup --name myAKSCluster
-          # AWS: aws eks update-kubeconfig --name my-cluster
-          # GCP: gcloud container clusters get-credentials my-cluster --zone us-central1-a --project my-project
-          
-          # For this example, we'll simulate the deployment
-          echo "Simulating deployment of manifest..."
-          cat k8s-manifest.yaml
-          
-          # To actually deploy, uncomment the line below:
-          # kubectl apply -f k8s-manifest.yaml
+          # Deploy the manifest to the cluster
+          kubectl apply -f k8s-manifest.yaml
           
           # Check deployment status
-          # kubectl rollout status deployment/manifest-deployment-app
+          kubectl rollout status deployment/manifest-deployment-app
+          
+          # Show deployment information
+          kubectl get deployments
+          kubectl get pods
+          kubectl get services
