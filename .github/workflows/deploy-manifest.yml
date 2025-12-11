@@ -1,14 +1,4 @@
-# Build and Deploy Manifest to Kubernetes
-#
-# This workflow builds a Docker image from the application code and deploys it to a Kubernetes cluster.
-#
-# Required Secrets:
-# - KUBECONFIG_DATA: Base64-encoded kubeconfig file for your Kubernetes cluster
-#
-# Optional Secrets (for cloud-specific deployments):
-# - GKE_PROJECT, GKE_SA_KEY, GKE_CLUSTER_NAME, GKE_ZONE (for GKE)
-# - AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION (for EKS)
-# - AZURE_CREDENTIALS, AZURE_RESOURCE_GROUP, AZURE_CLUSTER_NAME (for AKS)
+
 
 name: Build and Deploy Manifest
 
