@@ -66,36 +66,91 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Setup kubectl
-        uses: azure/setup-kubectl@v3
-        with:
-          version: 'latest'
-
+      
       - name: Update manifest with new image tag
         run: |
           # Replace the image in the manifest with the newly built image
           sed -i "s|image: manifest-deployment-app:latest|image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}|g" k8s-manifest.yaml
-          
+          cat k8s-manifest.yaml  # Display the updated manifest for verification
+      
+      # The following steps would be used when you have a specific cloud provider configured
+      # For now, this is a template that you can customize based on your Kubernetes provider
+      
+      # For Google Kubernetes Engine (GKE)
+      # - name: Set up Google Cloud CLI
+      #   uses: google-github-actions/setup-gcloud@v2
+      #   with:
+      #     project_id: ${{ secrets.GKE_PROJECT }}
+      #     service_account_key: ${{ secrets.GKE_SA_KEY }}
+      #     install_components: 'gke-gcloud-auth-plugin'
+      
+      # - name: Get GKE credentials
+      #   uses: google-github-actions/get-gke-credentials@v2
+      #   with:
+      #     cluster_name: ${{ secrets.GKE_CLUSTER_NAME }}
+      #     location: ${{ secrets.GKE_ZONE }}
+      
+      # For Amazon EKS
+      # - name: Configure AWS credentials
+      #   uses: aws-actions/configure-aws-credentials@v4
+      #   with:
+      #     aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      #     aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      #     aws-region: ${{ secrets.AWS_REGION }}
+      
+      # - name: Set up kubectl for EKS
+      #   run: |
+      #     curl -o kubectl https://amazon-eks.s3.us-west-2.amazonaws.com/1.21.2/2021-07-05/bin/linux/amd64/kubectl
+      #     chmod +x ./kubectl
+      #     sudo mv ./kubectl /usr/local/bin/kubectl
+      #     curl -o aws-iam-authenticator https://amazon-eks.s3.us-west-2.amazonaws.com/1.21.2/2021-07-05/bin/linux/amd64/aws-iam-authenticator
+      #     chmod +x ./aws-iam-authenticator
+      #     sudo mv ./aws-iam-authenticator /usr/local/bin/aws-iam-authenticator
+      #     kubectl version --client
+      
+      # For Azure Kubernetes Service (AKS)
+      # - name: Azure Login
+      #   uses: azure/login@v2
+      #   with:
+      #     creds: ${{ secrets.AZURE_CREDENTIALS }}
+      
+      # - name: Set up kubectl for AKS
+      #   run: |
+      #     az aks install-cli
+      #     az aks get-credentials --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} --name ${{ secrets.AZURE_CLUSTER_NAME }}
+      
+      # Generic approach using KUBECONFIG
       - name: Set up kubectl
         uses: azure/setup-kubectl@v3
         with:
           version: 'latest'
-
-      - name: Deploy manifest to cluster
+      
+      - name: Set up KUBECONFIG
         run: |
-          # Authenticate to your Kubernetes cluster
-          # This assumes you have set up the KUBE_CONFIG_DATA secret in your repository
-          echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 -d > kubeconfig
-          export KUBECONFIG=kubeconfig
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBECONFIG_DATA }}" | base64 -d > ~/.kube/config
+          chmod 600 ~/.kube/config
+      
+      - name: Deploy to Kubernetes
+        run: |
+          # Apply the updated manifest to the cluster
+          kubectl apply -f k8s-manifest.yaml
           
-          # Deploy the manifest to the cluster
-          kubectl apply -f k8s-manifest.yaml --validate=false
+          # Wait for deployment to be ready
+          kubectl rollout status deployment/manifest-deployment-app --timeout=10m
           
-          # Check deployment status
-          kubectl rollout status deployment/manifest-deployment-app
-          
-          # Show deployment information
-          kubectl get deployments
-          kubectl get pods
+          # Display service information
           kubectl get services
+          kubectl describe service manifest-deployment-app-service
+          
+          # Get the external IP (this may take time to provision)
+          echo "Waiting for LoadBalancer IP..."
+          timeout 300 bash -c 'while [[ -z $(kubectl get service manifest-deployment-app-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}') ]]; do sleep 10; echo "Waiting for LoadBalancer IP assignment..."; kubectl get services; done'
+          
+          # Display the final external IP
+          EXTERNAL_IP=$(kubectl get service manifest-deployment-app-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+          if [ ! -z "$EXTERNAL_IP" ]; then
+            echo "Application is available at: http://$EXTERNAL_IP"
+          else
+            echo "LoadBalancer IP not yet available. Check the service manually."
+          fi
