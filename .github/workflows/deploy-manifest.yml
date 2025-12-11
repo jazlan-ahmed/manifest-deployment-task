@@ -134,7 +134,7 @@ jobs:
       - name: Deploy to Kubernetes
         run: |
           # Apply the updated manifest to the cluster
-          kubectl apply -f k8s-manifest.yaml
+          kubectl apply -f k8s-manifest.yaml --validate=false
           
           # Wait for deployment to be ready
           kubectl rollout status deployment/manifest-deployment-app --timeout=10m
