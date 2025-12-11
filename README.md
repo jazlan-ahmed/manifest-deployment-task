@@ -181,3 +181,47 @@ Consider implementing:
 - Canary deployments for gradual rollouts
 - Automated rollback mechanisms
 - Infrastructure as Code (using Terraform or similar) for cluster provisioning
+## Local Development
+
+To run the application locally:
+
+```bash
+npm install
+npm start
+```
+
+The application will be available at http://localhost:3000
+
+## GitHub Actions Deployment
+
+This project is configured to build and deploy to Kubernetes using GitHub Actions.
+
+### Prerequisites for Deployment
+
+1. Set up a Kubernetes cluster (GKE, EKS, AKS, or another provider)
+2. Get your cluster's kubeconfig file
+3. Encode it as base64: `cat your-kubeconfig-file | base64 -w 0`
+4. Add it as a GitHub secret named "KUBECONFIG_DATA" in your repository settings
+
+### Deployment Process
+
+The GitHub Actions workflow will:
+1. Build and push the Docker image to GitHub Container Registry
+2. Update the Kubernetes manifest with the new image tag
+3. Deploy the application to your Kubernetes cluster
+4. Wait for the deployment to be ready
+5. Show the external IP where your application will be accessible
+
+### Application Endpoints
+
+Once deployed, your application will be available at:
+- Main endpoint: `http://[EXTERNAL-IP]/`
+- Health endpoint: `http://[EXTERNAL-IP]/health`
+
+## Project Structure
+
+- `index.js` - Main Express.js application
+- `Dockerfile` - Container configuration
+- `k8s-manifest.yaml` - Kubernetes deployment and service configuration
+- `.github/workflows/deploy-manifest.yml` - GitHub Actions workflow
+- `package.json` & `package-lock.json` - Node.js dependencies
